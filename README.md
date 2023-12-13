@@ -1,1 +1,1 @@
-# openWeatherAPI
+# peronalWeatherSite
