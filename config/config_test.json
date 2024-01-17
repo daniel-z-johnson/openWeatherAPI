@@ -1,5 +1,8 @@
 {
-  "zipcodes" : ["10001"],
+  "zipcodes" : [{
+    "postalCode" : "78613",
+    "countryCode": "USA"
+  }],
   "weatherAPI" : {
     "key": "a key"
   }

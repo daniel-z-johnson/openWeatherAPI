@@ -10,7 +10,10 @@ type Config struct {
 		Key string `json:"key"`
 	} `json:"weatherAPI"`
 
-	Zipcodes []string `json:"zipcodes"`
+	Zipcodes []struct {
+		PostalCode  string `json:"postalCode"`
+		CountryCode string `json:"countryCode"`
+	} `json:"zipcodes"`
 }
 
 func LoadConfig(fileLocation *string) (*Config, error) {
