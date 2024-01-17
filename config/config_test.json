@@ -1,0 +1,6 @@
+{
+  "zipcodes" : ["10001"],
+  "weatherAPI" : {
+    "key": "a key"
+  }
+}
