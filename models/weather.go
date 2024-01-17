@@ -7,12 +7,15 @@ import (
 	"net/url"
 )
 
-type GeoPoint struct {
-	Zip     string  `json:"zip"`
-	Name    string  `json:"name"`
-	Lat     float64 `json:"lat"`
-	Long    float64 `json:"long"`
-	Country string  `json:"country"`
+type GeoLocation struct {
+	Version    int32  `json:"Version"`
+	Key        string `json:"Key"`
+	Type       string `json:"Type"`
+	ParentCity struct {
+		Key           string `json:"Key"`
+		LocalizedName string `json:"LocalizedName"`
+		EnglishName   string `json:"EnglishName"`
+	} `json:"ParentCity"`
 }
 
 type WeatherAPI struct {
@@ -24,8 +27,8 @@ func WeatherService(logger *slog.Logger, config *config.Config) *WeatherAPI {
 	return &WeatherAPI{logger: logger, config: config}
 }
 
-func (wa *WeatherAPI) GetGeoPoints() ([]GeoPoint, error) {
-	geoPoints := make([]GeoPoint, 0)
+func (wa *WeatherAPI) GetGeoPoints() ([]GeoLocation, error) {
+	geoPoints := make([]GeoLocation, 0)
 	for _, zip := range wa.config.Zipcodes {
 		u, err := url.Parse("https://dataservice.accuweather.com/locations/v1/postalcodes/search")
 		if zip.CountryCode != "" {
@@ -37,6 +40,7 @@ func (wa *WeatherAPI) GetGeoPoints() ([]GeoPoint, error) {
 		}
 		values := u.Query()
 		values.Set("zip", zip.PostalCode)
+		values.Set("apikey", wa.config.WeatherAPI.Key)
 		u.RawQuery = values.Encode()
 		wa.logger.Info(u.String())
 	}
