@@ -22,3 +22,5 @@ go.work
 .idea/
 
 config.json
+
+w.db
