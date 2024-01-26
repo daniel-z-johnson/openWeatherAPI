@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
+	"zombiezen.com/go/sqlite"
 )
 
 type GeoLocation struct {
@@ -22,14 +24,32 @@ type GeoLocation struct {
 
 type WeatherAPI struct {
 	config *config.Config
+	db     *sqlite.Conn
 	logger *slog.Logger
 }
 
-func WeatherService(logger *slog.Logger, config *config.Config) *WeatherAPI {
-	return &WeatherAPI{logger: logger, config: config}
+func WeatherService(logger *slog.Logger, config *config.Config, db *sqlite.Conn) *WeatherAPI {
+	return &WeatherAPI{logger: logger, config: config, db: db}
 }
 
-func (wa *WeatherAPI) GetGeoPoints() ([]*GeoLocation, error) {
+func (wa *WeatherAPI) GetGeoPointsFromDb() ([]*GeoLocation, error) {
+	stmt, _, err := wa.db.PrepareTransient("DELETE FROM locations WHERE ttl < ?")
+	if err != nil {
+		wa.logger.Error(err.Error())
+		return nil, err
+	}
+	defer stmt.Finalize()
+	stmt.BindText(1, time.Now().Format(time.RFC3339))
+	rCount, err := stmt.Step()
+	if err != nil {
+		wa.logger.Error(err.Error())
+		return nil, err
+	}
+	wa.logger.Info("DELETE success", "row count", rCount)
+	return nil, nil
+}
+
+func (wa *WeatherAPI) GetGeoPointsFromAccu() ([]*GeoLocation, error) {
 	geoPoints := make([]*GeoLocation, 0)
 	for _, zip := range wa.config.Zipcodes {
 		u, err := url.Parse("https://dataservice.accuweather.com/locations/v1/postalcodes/search")

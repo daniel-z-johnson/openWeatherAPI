@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/daniel-z-johnson/peronalWeatherSite/config"
+	"github.com/daniel-z-johnson/peronalWeatherSite/models"
+	"time"
 	"zombiezen.com/go/sqlite"
 	"zombiezen.com/go/sqlite/sqlitemigration"
 
@@ -13,7 +16,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger = logger.With("application", "personal weather application")
 	logger.Info("Application start")
-
+	logger.Info(time.Now().Add(time.Hour * -2).Format(time.RFC3339))
 	conn, err := connectDB(logger)
 	if err != nil {
 		// nothing can be done so give up and cause program to crash
@@ -22,13 +25,14 @@ func main() {
 	migrate(conn, logger)
 
 	// quick testing delete later
-	// fileLoc := "config.json"
-	//conf, err := config.LoadConfig(&fileLoc)
-	//if err != nil {
-	//	logger.Error(err.Error())
-	//	panic(err)
-	//}
-	// wa := models.WeatherService(logger, conf)
+	fileLoc := "config.json"
+	conf, err := config.LoadConfig(&fileLoc)
+	if err != nil {
+		logger.Error(err.Error())
+		panic(err)
+	}
+	wa := models.WeatherService(logger, conf, conn)
+	wa.GetGeoPointsFromDb()
 	// geoPoints, err := wa.GetGeoPoints()
 	//if err != nil {
 	//	panic(err)
@@ -51,7 +55,7 @@ func migrate(conn *sqlite.Conn, logger *slog.Logger) {
 	schema := sqlitemigration.Schema{
 		AppID: 0xb19b66b,
 		Migrations: []string{
-			"CREATE TABLE locations(id INTEGER PRIMARY KEY AUTOINCREMENT, postal_code text, country text, key text, timestamp datetime, UNIQUE(postal_code, country))",
+			"CREATE TABLE locations(id INTEGER PRIMARY KEY AUTOINCREMENT, postal_code text, country text, key text, ttl datetime, UNIQUE(postal_code, country))",
 		},
 	}
 	err := sqlitemigration.Migrate(context.Background(), conn, schema)
