@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/daniel-z-johnson/peronalWeatherSite/config"
 	"github.com/daniel-z-johnson/peronalWeatherSite/models"
 	"time"
@@ -10,6 +11,19 @@ import (
 
 	"log/slog"
 	"os"
+)
+
+const (
+	LocationsTableCreate = `CREATE TABLE LOCATIONS(
+    			id INTEGER PRIMARY KEY AUTOINCREMENT,
+    			postal_code text,
+    			key text, 
+    			created_at datetime,
+    			country text,
+    			admin_area text,
+    			name text,
+    			country_code text
+				)`
 )
 
 func main() {
@@ -32,7 +46,12 @@ func main() {
 		panic(err)
 	}
 	wa := models.WeatherService(logger, conf, conn)
-	wa.GetGeoPointsFromDb()
+	loc, err := wa.GetLocation("US", "78613")
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	logger.Info(fmt.Sprintf("%+v", loc))
+	wa.GetLocations()
 	// geoPoints, err := wa.GetGeoPoints()
 	//if err != nil {
 	//	panic(err)
@@ -55,7 +74,7 @@ func migrate(conn *sqlite.Conn, logger *slog.Logger) {
 	schema := sqlitemigration.Schema{
 		AppID: 0xb19b66b,
 		Migrations: []string{
-			"CREATE TABLE locations(id INTEGER PRIMARY KEY AUTOINCREMENT, postal_code text, country text, key text, ttl datetime, UNIQUE(postal_code, country))",
+			LocationsTableCreate,
 		},
 	}
 	err := sqlitemigration.Migrate(context.Background(), conn, schema)
