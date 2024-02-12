@@ -57,7 +57,7 @@ func WeatherService(logger *slog.Logger, config *config.Config, db *sqlite.Conn)
 
 // use time.RFC3339
 func (wa *WeatherAPI) GetGeoPointFromDb(countryCode, postalCode string) (*Location, error) {
-	stmt, _, err := wa.db.PrepareTransient(`SELECT id, postal_code, key, created_at, country, admin_area, name FROM locations 
+	stmt, _, err := wa.db.PrepareTransient(`SELECT id, postal_code, key, created_at, country, admin_area, name, country_code FROM locations 
          WHERE country_code = ? AND postal_code = ? and CREATED_AT > ? ORDER BY CREATED_AT DESC`)
 	if err != nil {
 		wa.logger.Error(fmt.Sprintf("Error occured in WeaherAPI.GetGeoPoints with %s", err.Error()))
@@ -74,7 +74,7 @@ func (wa *WeatherAPI) GetGeoPointFromDb(countryCode, postalCode string) (*Locati
 	}
 	if rowReturned {
 		location := &Location{}
-		location.ID = stmt.GetInt64("ID")
+		location.ID = stmt.GetInt64("id")
 		location.PostalCode = stmt.GetText("postal_code")
 		location.Key = stmt.GetText("key")
 		createdAt, err := time.Parse(time.RFC3339, stmt.GetText("created_at"))
@@ -83,9 +83,10 @@ func (wa *WeatherAPI) GetGeoPointFromDb(countryCode, postalCode string) (*Locati
 		} else {
 			location.CreatedAt = createdAt
 		}
-		location.Country = stmt.GetText("location")
+		location.Country = stmt.GetText("country")
 		location.AdminArea = stmt.GetText("admin_area")
 		location.Name = stmt.GetText("name")
+		location.CountryCode = stmt.GetText("country_code")
 		// add a string method to locations for changing into string for logging, json maybe
 		wa.logger.Info("entry found", "location", fmt.Sprintf("%+v", location))
 		return location, nil
@@ -136,13 +137,13 @@ func (wa *WeatherAPI) GetLocationFromAccu(countryCode, postalCode string) (*Loca
 	return location, nil
 }
 
-func (wa *WeatherAPI) saveLocation(location *Location) error {
+func (wa *WeatherAPI) saveLocation(location *Location) (*Location, error) {
 	stmt, _, err := wa.db.PrepareTransient(`INSERT INTO locations 
     								(postal_code, key, created_at, country, admin_area, name, country_code) VALUES 
     								(          ?,   ?,          ?,       ?,          ?,    ?,            ?)`)
 	if err != nil {
 		wa.logger.Error(err.Error())
-		return err
+		return nil, err
 	}
 	stmt.BindText(1, location.PostalCode)
 	stmt.BindText(2, location.Key)
@@ -151,12 +152,13 @@ func (wa *WeatherAPI) saveLocation(location *Location) error {
 	stmt.BindText(5, location.AdminArea)
 	stmt.BindText(6, location.Name)
 	stmt.BindText(7, location.CountryCode)
+	location.ID = wa.db.LastInsertRowID()
 	_, err = stmt.Step()
 	if err != nil {
 		wa.logger.Error(err.Error())
-		return err
+		return nil, err
 	}
-	return nil
+	return location, nil
 }
 
 func (wa *WeatherAPI) GetLocation(countryCode, postalCode string) (*Location, error) {
@@ -169,7 +171,7 @@ func (wa *WeatherAPI) GetLocation(countryCode, postalCode string) (*Location, er
 		if err != nil {
 			return nil, err
 		}
-		_ = wa.saveLocation(loc)
+		loc, _ = wa.saveLocation(loc)
 	}
 	return loc, nil
 }

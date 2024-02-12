@@ -46,12 +46,13 @@ func main() {
 		panic(err)
 	}
 	wa := models.WeatherService(logger, conf, conn)
-	loc, err := wa.GetLocation("US", "78613")
+	locs, err := wa.GetLocations()
 	if err != nil {
-		logger.Error(err.Error())
+		panic(err)
 	}
-	logger.Info(fmt.Sprintf("%+v", loc))
-	wa.GetLocations()
+	for _, loc := range locs {
+		logger.Info(fmt.Sprintf("%+v", loc))
+	}
 	// geoPoints, err := wa.GetGeoPoints()
 	//if err != nil {
 	//	panic(err)
