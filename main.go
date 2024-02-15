@@ -24,6 +24,13 @@ const (
     			name text,
     			country_code text
 				)`
+	CurrentConditionsTableCreate = `CREATE TABLE CONDICTIONS(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		locations_id integer,
+		temp_c real,
+		temp_f real,
+		weather_type text
+	)`
 )
 
 func main() {
@@ -76,6 +83,7 @@ func migrate(conn *sqlite.Conn, logger *slog.Logger) {
 		AppID: 0xb19b66b,
 		Migrations: []string{
 			LocationsTableCreate,
+			CurrentConditionsTableCreate,
 		},
 	}
 	err := sqlitemigration.Migrate(context.Background(), conn, schema)

@@ -45,6 +45,14 @@ type Location struct {
 	CountryCode string
 }
 
+type Conditions struct {
+	ID          int64
+	LocationsID int
+	TempC       float64
+	TempF       float64
+	WeatherText string
+}
+
 type WeatherAPI struct {
 	config *config.Config
 	db     *sqlite.Conn
@@ -188,6 +196,10 @@ func (wa *WeatherAPI) GetLocations() ([]*Location, error) {
 		}
 	}
 	return locations, nil
+}
+
+func GetCurrentConditions() (*Conditions, error) {
+	
 }
 
 func (wa *WeatherAPI) loadKeys() {
