@@ -47,16 +47,29 @@ type Location struct {
 
 type Conditions struct {
 	ID          int64
-	LocationsID int
+	LocationsID int64
 	TempC       float64
 	TempF       float64
 	WeatherText string
+	CreatedAt   time.Time
 }
 
 type WeatherAPI struct {
 	config *config.Config
 	db     *sqlite.Conn
 	logger *slog.Logger
+}
+
+type CurrentConditions struct {
+	WeatherText string `json:"WeatherText"`
+	Temperature struct {
+		Metric struct {
+			Value float64 `json:"Value"`
+		} `json:"Metric"`
+		Imperial struct {
+			Value float64 `json:"value"`
+		} `json:"Imperial"`
+	} `json:"Temperature"`
 }
 
 func WeatherService(logger *slog.Logger, config *config.Config, db *sqlite.Conn) *WeatherAPI {
@@ -118,7 +131,7 @@ func (wa *WeatherAPI) GetLocationFromAccu(countryCode, postalCode string) (*Loca
 	values.Set("q", postalCode)
 	values.Set("apikey", wa.config.WeatherAPI.Key)
 	u.RawQuery = values.Encode()
-	// API will return area of possible locations
+	// API will return array of possible locations
 	geoLoc := make([]*GeoLocation, 0)
 	r, err := http.Get(u.String())
 	if err != nil {
@@ -199,7 +212,60 @@ func (wa *WeatherAPI) GetLocations() ([]*Location, error) {
 }
 
 func GetCurrentConditions() (*Conditions, error) {
-	
+	panic("not implemented")
+}
+
+func (wa *WeatherAPI) GetCurrentConditionFromAccu(locationID int64, key string) (*Conditions, error) {
+	u, err := url.Parse("https://dataservice.accuweather.com/currentconditions/v1/" + key)
+	conditions := &Conditions{}
+	if err != nil {
+		return nil, err
+	}
+	values := u.Query()
+	values.Set("apikey", wa.config.WeatherAPI.Key)
+	u.RawQuery = values.Encode()
+	// accu returns an array of conditions
+	currentConditions := make([]*CurrentConditions, 0)
+	r, err := http.Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	err = json.NewDecoder(r.Body).Decode(&currentConditions)
+	if err != nil {
+		return nil, err
+	}
+	// Just grab the first one, since this is for personal use only at this
+	// point it is ok to assume there will be at least one location
+	currentCondition := currentConditions[0]
+	conditions.LocationsID = locationID
+	conditions.WeatherText = currentCondition.WeatherText
+	conditions.TempC = currentCondition.Temperature.Metric.Value
+	conditions.TempF = currentCondition.Temperature.Imperial.Value
+	return conditions, nil
+}
+
+func (wa *WeatherAPI) SaveConditions(conditions *Conditions) (*Conditions, error) {
+	stmt, _, err := wa.db.PrepareTransient(`INSERT INTO CONDITIONS 
+    								(locations_id, temp_c, temp_f, weather_type, created_at) VALUES 
+                                     (          ?,      ?,      ?,            ?,           ?)`)
+	if err != nil {
+		wa.logger.Error(err.Error())
+		return nil, err
+	}
+	stmt.BindInt64(1, conditions.LocationsID)
+	stmt.BindFloat(2, conditions.TempC)
+	stmt.BindFloat(3, conditions.TempF)
+	stmt.BindText(4, conditions.WeatherText)
+	stmt.BindText(5, time.Now().Format(time.RFC3339))
+	_, err = stmt.Step()
+	if err != nil {
+		wa.logger.Error(err.Error())
+		return nil, err
+	}
+	conditions.ID = wa.db.LastInsertRowID()
+	return conditions, nil
+
 }
 
 func (wa *WeatherAPI) loadKeys() {
