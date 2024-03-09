@@ -54,27 +54,8 @@ func main() {
 		panic(err)
 	}
 	wa := models.WeatherService(logger, conf, conn)
-	locs, err := wa.GetLocations()
-	if err != nil {
-		panic(err)
-	}
-	for _, loc := range locs {
-		logger.Info(fmt.Sprintf("%+v", loc))
-	}
-	c, e := wa.GetCurrentConditionFromAccu(locs[0].ID, locs[0].Key)
-	if e != nil {
-		logger.Error("Something went wrong when getting conditions from Accu", "error", err.Error())
-		panic(e)
-	}
-	logger.Info("current condition", "condition", fmt.Sprintf("%+v", c))
-	fmt.Println(wa.SaveConditions(c))
-	// geoPoints, err := wa.GetGeoPoints()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//for _, geo := range geoPoints {
-	//	fmt.Printf("%+v\n", geo)
-	//}
+	loc, _ := wa.GetLocation("USA", "78613")
+	logger.Info(fmt.Sprintf("%+v", loc))
 }
 
 func connectDB(logger *slog.Logger) (*sqlite.Conn, error) {

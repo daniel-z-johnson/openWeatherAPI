@@ -76,7 +76,6 @@ func WeatherService(logger *slog.Logger, config *config.Config, db *sqlite.Conn)
 	return &WeatherAPI{logger: logger, config: config, db: db}
 }
 
-// use time.RFC3339
 func (wa *WeatherAPI) GetGeoPointFromDb(countryCode, postalCode string) (*Location, error) {
 	stmt, _, err := wa.db.PrepareTransient(`SELECT id, postal_code, key, created_at, country, admin_area, name, country_code FROM locations 
          WHERE country_code = ? AND postal_code = ? and CREATED_AT > ? ORDER BY CREATED_AT DESC`)
@@ -173,12 +172,12 @@ func (wa *WeatherAPI) saveLocation(location *Location) (*Location, error) {
 	stmt.BindText(5, location.AdminArea)
 	stmt.BindText(6, location.Name)
 	stmt.BindText(7, location.CountryCode)
-	location.ID = wa.db.LastInsertRowID()
 	_, err = stmt.Step()
 	if err != nil {
 		wa.logger.Error(err.Error())
 		return nil, err
 	}
+	location.ID = wa.db.LastInsertRowID()
 	return location, nil
 }
 
@@ -197,22 +196,19 @@ func (wa *WeatherAPI) GetLocation(countryCode, postalCode string) (*Location, er
 	return loc, nil
 }
 
-func (wa *WeatherAPI) GetLocations() ([]*Location, error) {
-	locations := make([]*Location, 0)
-	for _, v := range wa.config.Zipcodes {
-		loc, err := wa.GetLocation(v.CountryCode, v.PostalCode)
-		if err != nil {
-			wa.logger.Info("Issue happened", "err", err.Error())
-		}
-		if loc != nil {
-			locations = append(locations, loc)
-		}
+func (wa *WeatherAPI) GetCurrentCondition(locationID int64, key string) (*Conditions, error) {
+	condition, err := wa.GetCurrentConditionFromDB(locationID)
+	if err != nil {
+		return nil, err
 	}
-	return locations, nil
-}
-
-func GetCurrentConditions() (*Conditions, error) {
-	panic("not implemented")
+	if condition == nil {
+		condition, err = wa.GetCurrentConditionFromAccu(locationID, key)
+		if err != nil {
+			return nil, err
+		}
+		condition, _ = wa.SaveCurrentConditions(condition)
+	}
+	return condition, nil
 }
 
 func (wa *WeatherAPI) GetCurrentConditionFromAccu(locationID int64, key string) (*Conditions, error) {
@@ -245,7 +241,7 @@ func (wa *WeatherAPI) GetCurrentConditionFromAccu(locationID int64, key string) 
 	return conditions, nil
 }
 
-func (wa *WeatherAPI) SaveConditions(conditions *Conditions) (*Conditions, error) {
+func (wa *WeatherAPI) SaveCurrentConditions(conditions *Conditions) (*Conditions, error) {
 	stmt, _, err := wa.db.PrepareTransient(`INSERT INTO CONDITIONS 
     								(locations_id, temp_c, temp_f, weather_type, created_at) VALUES 
                                      (          ?,      ?,      ?,            ?,           ?)`)
@@ -265,9 +261,40 @@ func (wa *WeatherAPI) SaveConditions(conditions *Conditions) (*Conditions, error
 	}
 	conditions.ID = wa.db.LastInsertRowID()
 	return conditions, nil
-
 }
 
-func (wa *WeatherAPI) loadKeys() {
+func (wa *WeatherAPI) GetCurrentConditionFromDB(locationID int64) (*Conditions, error) {
+	stmt, _, err := wa.db.PrepareTransient(`SELECT id, locations_id, temp_c, temp_f, weather_type, created_at FROM CONDITIONS
+													WHERE locations_id = ? AND created_at > ?`)
+	if err != nil {
+		wa.logger.Error("Unable to process SQL statement for CONDICTIONS", "err", err.Error())
+		return nil, err
+	}
 
+	stmt.BindInt64(1, locationID)
+	stmt.BindText(2, time.Now().Add(-1*time.Hour).Format(time.RFC3339))
+	rowReturn, err := stmt.Step()
+	if err != nil {
+		wa.logger.Error("Error executing CONDITIONS sql statement", "err", err.Error())
+		return nil, err
+	}
+
+	if rowReturn {
+		conditions := &Conditions{}
+		conditions.ID = stmt.GetInt64("id")
+		conditions.LocationsID = stmt.GetInt64("locations_id")
+		conditions.TempF = stmt.GetFloat("temp_f")
+		conditions.TempC = stmt.GetFloat("temp_c")
+		conditions.WeatherText = stmt.GetText("weather_type")
+		createdAt, err := time.Parse(time.RFC3339, stmt.GetText("created_at"))
+		if err != nil {
+			wa.logger.Error("Error setting location.CreatedAt value")
+		} else {
+			conditions.CreatedAt = createdAt
+		}
+		return conditions, nil
+
+	}
+	wa.logger.Info("No rows return for conditions", "locationID", locationID)
+	return nil, nil
 }
