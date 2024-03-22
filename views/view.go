@@ -28,7 +28,7 @@ func ParseFS(logger *slog.Logger, fs fs.FS, pattern ...string) (Template, error)
 	return Template{htmlTpl: htmlTpl, logger: logger}, nil
 }
 
-func (t Template) Execute(logger *slog.Logger, w http.ResponseWriter, r *http.Request, data interface{}) {
+func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := t.htmlTpl.Execute(w, data)
 	if err != nil {
