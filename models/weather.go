@@ -72,6 +72,11 @@ type CurrentConditions struct {
 	} `json:"Temperature"`
 }
 
+type WeatherLoc struct {
+	Location   *Location
+	Conditions *Conditions
+}
+
 func WeatherService(logger *slog.Logger, config *config.Config, db *sqlite.Conn) *WeatherAPI {
 	return &WeatherAPI{logger: logger, config: config, db: db}
 }
@@ -297,4 +302,20 @@ func (wa *WeatherAPI) GetCurrentConditionFromDB(locationID int64) (*Conditions, 
 	}
 	wa.logger.Info("No rows return for conditions", "locationID", locationID)
 	return nil, nil
+}
+
+func (wa *WeatherAPI) GetListWeatherLocs() ([]*WeatherLoc, error) {
+	weatherLocList := make([]*WeatherLoc, 0)
+	for _, zipcode := range wa.config.Zipcodes {
+		loc, err := wa.GetLocation(zipcode.CountryCode, zipcode.PostalCode)
+		if err != nil {
+			return nil, err
+		}
+		condition, err := wa.GetCurrentCondition(loc.ID, loc.Key)
+		if err != nil {
+			return nil, err
+		}
+		weatherLocList = append(weatherLocList, &WeatherLoc{Location: loc, Conditions: condition})
+	}
+	return weatherLocList, nil
 }

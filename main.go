@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/daniel-z-johnson/peronalWeatherSite/config"
 	"github.com/daniel-z-johnson/peronalWeatherSite/models"
 	"time"
@@ -54,8 +53,15 @@ func main() {
 		panic(err)
 	}
 	wa := models.WeatherService(logger, conf, conn)
-	loc, _ := wa.GetLocation("USA", "78613")
-	logger.Info(fmt.Sprintf("%+v", loc))
+	weatherList, err := wa.GetListWeatherLocs()
+	if err != nil {
+		logger.Info(err.Error())
+		panic(err)
+	}
+	logger.Info("it works, or at least no errors")
+	for _, weather := range weatherList {
+		logger.Info("Weather", "city", weather.Location.Name, "Admin", weather.Location.AdminArea, "F", weather.Conditions.TempF)
+	}
 }
 
 func connectDB(logger *slog.Logger) (*sqlite.Conn, error) {
