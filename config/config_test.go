@@ -11,8 +11,8 @@ func TestLoadConf(t *testing.T) {
 	if c == nil {
 		t.Fatal("config loaded is nil")
 	}
-	if c.Zipcodes == nil {
-		t.Fatal("Zipcodes should not be nil")
+	if c.Cities == nil {
+		t.Fatal("Cities should not be nil")
 	}
 	if c.WeatherAPI.Key == "" {
 		t.Error("weatherAPI key should not be empty")

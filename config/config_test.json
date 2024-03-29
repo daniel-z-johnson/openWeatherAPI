@@ -1,6 +1,7 @@
 {
-  "zipcodes" : [{
-    "postalCode" : "78613",
+  "cities" : [{
+    "city" : "Houston",
+    "adminArea": "Texas",
     "countryCode": "USA"
   }],
   "weatherAPI" : {

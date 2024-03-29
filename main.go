@@ -15,13 +15,13 @@ import (
 const (
 	LocationsTableCreate = `CREATE TABLE LOCATIONS(
     			id INTEGER PRIMARY KEY AUTOINCREMENT,
-    			postal_code text,
     			key text, 
     			created_at datetime,
     			country text,
     			admin_area text,
-    			name text,
-    			country_code text
+    			city text,
+    			country_code text,
+    			admin_area_code text
 				)`
 	CurrentConditionsTableCreate = `CREATE TABLE CONDITIONS(
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +60,7 @@ func main() {
 	}
 	logger.Info("it works, or at least no errors")
 	for _, weather := range weatherList {
-		logger.Info("Weather", "city", weather.Location.Name, "Admin", weather.Location.AdminArea, "F", weather.Conditions.TempF)
+		logger.Info("Weather", "city", weather.Location.City, "Admin", weather.Location.AdminArea, "F", weather.Conditions.TempF)
 	}
 }
 
