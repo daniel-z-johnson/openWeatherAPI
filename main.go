@@ -3,7 +3,12 @@ package main
 import (
 	"context"
 	"github.com/daniel-z-johnson/peronalWeatherSite/config"
+	"github.com/daniel-z-johnson/peronalWeatherSite/controllers"
 	"github.com/daniel-z-johnson/peronalWeatherSite/models"
+	"github.com/daniel-z-johnson/peronalWeatherSite/templates"
+	"github.com/daniel-z-johnson/peronalWeatherSite/views"
+	"github.com/go-chi/chi/v5"
+	"net/http"
 	"time"
 	"zombiezen.com/go/sqlite"
 	"zombiezen.com/go/sqlite/sqlitemigration"
@@ -53,15 +58,17 @@ func main() {
 		panic(err)
 	}
 	wa := models.WeatherService(logger, conf, conn)
-	weatherList, err := wa.GetListWeatherLocs()
+	// View
+	weatherMainPage, err := views.ParseFS(logger, templates.FS, "central-layout.gohtml", "personalWeather.gohtml")
 	if err != nil {
-		logger.Info(err.Error())
+		logger.Error("Issue with parsing templates", "errMSG", err.Error())
 		panic(err)
 	}
-	logger.Info("it works, or at least no errors")
-	for _, weather := range weatherList {
-		logger.Info("Weather", "city", weather.Location.City, "Admin", weather.Location.AdminArea, "F", weather.Conditions.TempF)
-	}
+
+	wc := &controllers.Weather{WeatherAPI: wa, Log: logger, PersonalWeather: weatherMainPage}
+	r := chi.NewRouter()
+	r.Get("/", wc.ShowCities)
+	http.ListenAndServe(":1777", r)
 }
 
 func connectDB(logger *slog.Logger) (*sqlite.Conn, error) {

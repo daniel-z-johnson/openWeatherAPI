@@ -2,7 +2,10 @@ module github.com/daniel-z-johnson/peronalWeatherSite
 
 go 1.21.5
 
-require zombiezen.com/go/sqlite v1.1.2
+require (
+	github.com/go-chi/chi/v5 v5.0.12
+	zombiezen.com/go/sqlite v1.1.2
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

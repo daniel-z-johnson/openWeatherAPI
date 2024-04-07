@@ -20,12 +20,12 @@ func Must(t Template, err error) Template {
 	return t
 }
 
-func ParseFS(logger *slog.Logger, fs fs.FS, pattern ...string) (Template, error) {
+func ParseFS(logger *slog.Logger, fs fs.FS, pattern ...string) (*Template, error) {
 	htmlTpl, err := template.ParseFS(fs, pattern...)
 	if err != nil {
-		return Template{}, fmt.Errorf("parsing template: %w", err)
+		return nil, fmt.Errorf("parsing template: %w", err)
 	}
-	return Template{htmlTpl: htmlTpl, logger: logger}, nil
+	return &Template{htmlTpl: htmlTpl, logger: logger}, nil
 }
 
 func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}) {
@@ -33,7 +33,7 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 	err := t.htmlTpl.Execute(w, data)
 	if err != nil {
 		t.logger.Error("Error occurred while executing template", "error", err.Error())
-		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		http.Error(w, "Something went wrong, please contact maintainer, though maintainer refuses to leave contact information so good luck", http.StatusInternalServerError)
 		return
 	}
 }
