@@ -11,14 +11,14 @@
         </tr>
         </thead>
         <tbody>
-        {{range .weatherLoc}}
+        {{range .}}
             <tr>
-                <td>.Location.City</td>
-                <td>.Location.AdminArea</td>
-                <td>.Location.Country</td>
-                <td>.Conditions.TempF</td>
-                <td>.Conditions.TempC</td>
-                <td>.Conditions.WeatherText</td>
+                <td>{{.Location.City}}</td>
+                <td>{{.Location.AdminArea}}</td>
+                <td>{{.Location.Country}}</td>
+                <td>{{.Conditions.TempF}}</td>
+                <td>{{.Conditions.TempC}}</td>
+                <td>{{.Conditions.WeatherText}}</td>
             </tr>
         {{end}}
         </tbody>
