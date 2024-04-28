@@ -1,0 +1,45 @@
+version: '3.7'
+
+services:
+  elasticsearch:
+    image: elasticsearch:7.17.20
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ELASTIC_PASSWORD=admin"  
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
+    networks:
+      - elk-network
+
+  logstash:
+    image: logstash:7.17.20
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logs:/logs  
+    ports:
+      - "5000:5000"
+    networks:
+      - elk-network
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: kibana:7.17.20
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_USERNAME=elastic  
+      - ELASTICSEARCH_PASSWORD=admin    
+    networks:
+      - elk-network
+    depends_on:
+      - elasticsearch
+
+networks:
+  elk-network:
+    driver: bridge
+

@@ -8,6 +8,7 @@ import (
 	"github.com/daniel-z-johnson/peronalWeatherSite/templates"
 	"github.com/daniel-z-johnson/peronalWeatherSite/views"
 	"github.com/go-chi/chi/v5"
+	"io"
 	"net/http"
 	"time"
 	"zombiezen.com/go/sqlite"
@@ -39,7 +40,7 @@ const (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := setUpLogger()
 	logger = logger.With("application", "personal weather application")
 	logger.Info("Application start")
 	logger.Info(time.Now().Add(time.Hour * -2).Format(time.RFC3339))
@@ -94,4 +95,14 @@ func migrate(conn *sqlite.Conn, logger *slog.Logger) {
 		panic(err)
 	}
 	logger.Info("Migration Success")
+}
+
+func setUpLogger() *slog.Logger {
+	f1, err := os.OpenFile("logs/pw.log", os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger.Error("Unable to open log file", "errMSG", err.Error())
+		return logger
+	}
+	return slog.New(slog.NewJSONHandler(io.MultiWriter(os.Stdout, f1), nil))
 }
